@@ -24,7 +24,7 @@ const fileKey = (file) => `${file.name}:${file.size}`
 const baseName = (filename) => filename.replace(/\.[^.]+$/, '')
 
 function validateFile(file) {
-  if (ACCEPTED_TYPES.length && !ACCEPTED_TYPES.includes(file.type)) {
+  if (!ACCEPTED_TYPES.includes(file.type)) {
     return `${file.name}: unsupported file type`
   }
   if (file.size > MAX_FILE_SIZE) {
@@ -47,8 +47,10 @@ export default function FileUpload() {
   const [meta, setMeta] = useState({})
   // Per-file Name validation errors keyed by fileKey.
   const [nameErrors, setNameErrors] = useState({})
+  // Per-file server upload errors keyed by fileKey (set after a failed attempt).
+  const [uploadErrors, setUploadErrors] = useState({})
 
-  const { mutate, isPending, isSuccess, isError, error, reset } =
+  const { mutate, isPending, isError, error, data: result, reset } =
     useUploadFiles()
 
   const addFiles = useCallback((fileList) => {
@@ -158,22 +160,22 @@ export default function FileUpload() {
     return () => window.removeEventListener('focus', clear)
   }, [isPicking])
 
+  // Drop a key from each per-file map (meta + both error maps).
+  const forgetKey = (key) => {
+    const without = (obj) => {
+      const next = { ...obj }
+      delete next[key]
+      return next
+    }
+    setMeta(without)
+    setNameErrors(without)
+    setUploadErrors(without)
+  }
+
   const removeFile = (index) => {
     const removed = files[index]
     setFiles((prev) => prev.filter((_, i) => i !== index))
-    if (removed) {
-      const key = fileKey(removed)
-      setMeta((prev) => {
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
-      setNameErrors((prev) => {
-        const next = { ...prev }
-        delete next[key]
-        return next
-      })
-    }
+    if (removed) forgetKey(fileKey(removed))
   }
 
   const clearAll = () => {
@@ -181,6 +183,7 @@ export default function FileUpload() {
     setErrors([])
     setMeta({})
     setNameErrors({})
+    setUploadErrors({})
     setProgress(0)
     reset()
   }
@@ -200,11 +203,29 @@ export default function FileUpload() {
     if (Object.keys(nextNameErrors).length > 0) return
 
     setProgress(0)
-    const metadata = files.map((f) => {
-      const m = meta[fileKey(f)]
-      return { name: m.name.trim(), description: m.description.trim() }
+    setUploadErrors({})
+    const items = files.map((f) => {
+      const key = fileKey(f)
+      const m = meta[key]
+      return { file: f, key, name: m.name.trim(), description: m.description.trim() }
     })
-    mutate({ files, metadata, onProgress: setProgress })
+
+    mutate(
+      { items, onProgress: setProgress },
+      {
+        onSuccess: ({ succeeded, failed }) => {
+          // Remove uploaded files (and their metadata) from the list…
+          const doneKeys = new Set(succeeded.map((s) => s.key))
+          setFiles((prev) => prev.filter((f) => !doneKeys.has(fileKey(f))))
+          doneKeys.forEach((key) => forgetKey(key))
+          // …and surface a per-file error for any that failed, so they remain
+          // in the list for the user to retry.
+          setUploadErrors(
+            Object.fromEntries(failed.map((x) => [x.key, x.message])),
+          )
+        },
+      },
+    )
   }
 
   return (
@@ -315,6 +336,7 @@ export default function FileUpload() {
             const key = fileKey(file)
             const entry = meta[key] ?? { name: '', description: '' }
             const nameError = nameErrors[key]
+            const uploadError = uploadErrors[key]
             return (
               <li key={key} className="space-y-3 px-4 py-4">
                 <div className="flex items-center justify-between gap-3">
@@ -424,6 +446,12 @@ export default function FileUpload() {
                     />
                   </div>
                 </div>
+
+                {uploadError && (
+                  <p className="rounded-md bg-red-50 px-3 py-2 text-xs text-red-700">
+                    Upload failed: {uploadError}
+                  </p>
+                )}
               </li>
             )
           })}
@@ -446,12 +474,23 @@ export default function FileUpload() {
         </div>
       )}
 
-      {/* Status messages */}
-      {isSuccess && (
+      {/* Batch result summary */}
+      {result && result.succeeded.length > 0 && (
         <p className="rounded-md bg-green-50 p-3 text-sm text-green-700">
-          Upload complete.
+          Uploaded {result.succeeded.length} image
+          {result.succeeded.length === 1 ? '' : 's'}.
+          {result.failed.length > 0 &&
+            ` ${result.failed.length} failed — see the errors above and retry.`}
         </p>
       )}
+      {result && result.succeeded.length === 0 && result.failed.length > 0 && (
+        <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">
+          All {result.failed.length} upload
+          {result.failed.length === 1 ? '' : 's'} failed — see the errors above
+          and retry.
+        </p>
+      )}
+      {/* Unexpected (non per-file) error */}
       {isError && (
         <p className="rounded-md bg-red-50 p-3 text-sm text-red-700">
           {error.message}
@@ -464,7 +503,7 @@ export default function FileUpload() {
           type="button"
           onClick={handleUpload}
           disabled={!files.length || isPending}
-          className="rounded-md bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+          className="cursor-pointer rounded-md bg-blue-600 px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {isPending ? `Uploading… ${progress}%` : 'Upload'}
         </button>

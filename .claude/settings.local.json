@@ -1,7 +1,10 @@
 {
   "permissions": {
     "allow": [
-      "Bash(npm run *)"
+      "Bash(npm run *)",
+      "Read(//home/regieosano/Others/rgo_projects_ai_assisted/**)",
+      "Bash(curl -s \"http://localhost:4000/api/v1/images?page=1&limit=2\")",
+      "Bash(curl -s \"http://localhost:4000/api/v1/images?page=1&limit=1\")"
     ]
   }
 }

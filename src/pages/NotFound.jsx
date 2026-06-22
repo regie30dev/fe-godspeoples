@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="text-slate-600">This page could not be found.</p>
       <Link
         to="/"
-        className="inline-block rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700"
+        className="inline-block rounded-md bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-700"
       >
         Back home
       </Link>

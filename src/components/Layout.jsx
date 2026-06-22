@@ -1,4 +1,6 @@
+import { Suspense } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
+import Spinner from '@/components/Spinner'
 
 const navLinkClass = ({ isActive }) =>
   `rounded-md px-3 py-2 text-sm font-medium transition-colors ${
@@ -27,7 +29,19 @@ export default function Layout() {
       </header>
 
       <main className="mx-auto max-w-5xl px-4 py-8">
-        <Outlet />
+        <Suspense
+          fallback={
+            <div
+              role="status"
+              aria-label="Loading"
+              className="flex justify-center py-20"
+            >
+              <Spinner className="h-10 w-10 text-blue-600" />
+            </div>
+          }
+        >
+          <Outlet />
+        </Suspense>
       </main>
     </div>
   )

@@ -2,10 +2,10 @@ import axios from 'axios'
 
 // Base URL for the GodsPeoples backend API.
 // Configure via VITE_API_BASE_URL in your .env file.
-const baseURL = import.meta.env.VITE_API_BASE_URL ?? '/api'
+export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '/api'
 
 export const api = axios.create({
-  baseURL,
+  baseURL: API_BASE_URL,
   headers: {
     'Content-Type': 'application/json',
   },

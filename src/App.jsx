@@ -1,9 +1,13 @@
+import { lazy } from 'react'
 import { Routes, Route } from 'react-router-dom'
 import Layout from '@/components/Layout'
-import Home from '@/pages/Home'
-import People from '@/pages/People'
-import Upload from '@/pages/Upload'
-import NotFound from '@/pages/NotFound'
+
+// Code-split pages so navigating to one shows the Suspense spinner in Layout
+// while its chunk loads.
+const Home = lazy(() => import('@/pages/Home'))
+const People = lazy(() => import('@/pages/People'))
+const Upload = lazy(() => import('@/pages/Upload'))
+const NotFound = lazy(() => import('@/pages/NotFound'))
 
 function App() {
   return (
