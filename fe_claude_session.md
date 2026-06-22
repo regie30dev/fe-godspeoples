@@ -72,3 +72,11 @@ A running record of all adds, edits, and changes made to the **GodsPeoples** fro
 
 ### File upload auto-scroll
 - **`FileUpload.jsx`** — the list now auto-scrolls (`scroll-smooth`) to the newest entry when files are added, using a list ref + previous-count ref to scroll only on additions (not removals).
+
+### Wire upload to real images API
+- **`.env`** / **`.env.example`** — `VITE_API_BASE_URL` set to `http://localhost:4000/api/v1`.
+- **`useUploadFiles.js`** — reworked to POST one request **per file** to `/images` as `multipart/form-data` with fields `image` (file, required), `name` (required), and `description` (optional, omitted when blank). Aggregates upload progress across all files into a single 0–100 value.
+
+### Vite dev proxy (CORS-free dev)
+- **`vite.config.js`** — added a `server.proxy` rule forwarding `/api` → `http://localhost:4000` (`changeOrigin: true`), so dev requests are same-origin and avoid CORS.
+- **`.env`** / **`.env.example`** — changed `VITE_API_BASE_URL` to the relative `/api/v1` so calls route through the proxy in dev; documented setting a full API origin for deployed builds.
